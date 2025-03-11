@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import glob from 'fast-glob';
+import * as glob from 'fast-glob';
 import { getSalesforceSourceDirectory } from './projectDetector';
 import { isXmlFile, isCodeFile, getMetadataTypeFromPath } from './utils/fileUtils';
 
@@ -47,7 +47,7 @@ export async function countMetadata(): Promise<number> {
       const baseName = filePath.slice(0, -9); // Remove '-meta.xml'
       
       // Check if this is a metadata file for a code component
-      if (codeFiles.some((codeFile: string) => codeFile.replace(/\\/g, '/') === baseName)) {
+      if (codeFiles.some(codeFile => codeFile.replace(/\\/g, '/') === baseName)) {
         pairedFileTracker.add(baseName);
         continue; // Skip counting this file as it will be counted with its paired file
       }
@@ -119,7 +119,7 @@ export async function generateMetadataReport(): Promise<MetadataReport> {
     if (filePath.endsWith('-meta.xml')) {
       const baseName = filePath.slice(0, -9);
       
-      if (codeFiles.some((codeFile: string) => codeFile.replace(/\\/g, '/') === baseName)) {
+      if (codeFiles.some(codeFile => codeFile.replace(/\\/g, '/') === baseName)) {
         pairedFileTracker.add(baseName);
         continue;
       }
@@ -131,12 +131,69 @@ export async function generateMetadataReport(): Promise<MetadataReport> {
       
       if (!pairedFileTracker.has(componentDir)) {
         pairedFileTracker.add(componentDir);
-        const componentType = filePath.includes('/aura/') ? 'aura' : 'lwc';
+        
+        // Use standardized Salesforce metadata type names
+        const componentType = filePath.includes('/aura/') 
+          ? 'AuraDefinitionBundle' 
+          : 'LightningComponentBundle';
+          
         report[componentType] = (report[componentType] || 0) + 1;
       }
+    } else if (filePath.includes('/objects/')) {
+      // Handle objects hierarchy with proper Salesforce metadata type names
+      if (filePath.includes('/fields/')) {
+        report['CustomField'] = (report['CustomField'] || 0) + 1;
+      } else if (filePath.includes('/listViews/')) {
+        report['ListView'] = (report['ListView'] || 0) + 1;
+      } else if (filePath.includes('/validationRules/')) {
+        report['ValidationRule'] = (report['ValidationRule'] || 0) + 1;
+      } else if (filePath.includes('/recordTypes/')) {
+        report['RecordType'] = (report['RecordType'] || 0) + 1;
+      } else if (filePath.includes('/webLinks/')) {
+        report['WebLink'] = (report['WebLink'] || 0) + 1;
+      } else if (filePath.match(/\/objects\/[^/]+\/[^/]+\.object-meta\.xml$/)) {
+        report['CustomObject'] = (report['CustomObject'] || 0) + 1;
+      } else {
+        // Other object components
+        report[metadataType] = (report[metadataType] || 0) + 1;
+      }
     } else {
+      // Map common file extensions to proper Salesforce metadata type names
+      let properMetadataType = metadataType;
+      
+      // Map common extensions to proper Salesforce metadata type names
+      const typeMapping: Record<string, string> = {
+        'cls': 'ApexClass',
+        'trigger': 'ApexTrigger',
+        'page': 'ApexPage',
+        'component': 'ApexComponent',
+        'app-meta': 'CustomApplication',
+        'layout-meta': 'Layout',
+        'permissionset-meta': 'PermissionSet',
+        'profile-meta': 'Profile',
+        'resource-meta': 'StaticResource',
+        'tab-meta': 'CustomTab',
+        'flow-meta': 'Flow',
+        'globalValueSet-meta': 'GlobalValueSet',
+        'queue-meta': 'Queue',
+        'role-meta': 'Role',
+        'labels-meta': 'CustomLabels'
+      };
+      
+      // Extract the extension part for mapping
+      const extPart = path.basename(filePath).split('.').slice(1).join('.');
+      if (typeMapping[extPart]) {
+        properMetadataType = typeMapping[extPart];
+      } else if (path.basename(filePath).endsWith('-meta.xml')) {
+        // Try to extract the type from the file name pattern
+        const match = path.basename(filePath).match(/^.*\.([^.]+)-meta\.xml$/);
+        if (match && match[1] && typeMapping[match[1]]) {
+          properMetadataType = typeMapping[match[1]];
+        }
+      }
+      
       // Count all other XML files by their metadata type
-      report[metadataType] = (report[metadataType] || 0) + 1;
+      report[properMetadataType] = (report[properMetadataType] || 0) + 1;
     }
   }
 
@@ -146,7 +203,15 @@ export async function generateMetadataReport(): Promise<MetadataReport> {
     
     if (!pairedFileTracker.has(filePath)) {
       const extension = path.extname(filePath).slice(1);
-      report[extension] = (report[extension] || 0) + 1;
+      
+      // Map to standard Salesforce metadata types
+      const typeMap: Record<string, string> = {
+        'cls': 'ApexClass',
+        'trigger': 'ApexTrigger'
+      };
+      
+      const metadataType = typeMap[extension] || extension;
+      report[metadataType] = (report[metadataType] || 0) + 1;
     }
   }
 
