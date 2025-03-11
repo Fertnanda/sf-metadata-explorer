@@ -4,64 +4,88 @@
     "description": "Count Salesforce metadata components according to specific guidelines",
     "version": "0.1.0",
     "engines": {
-        "vscode": "^1.60.0"
+      "vscode": "^1.60.0"
     },
     "publisher": "your-publisher-name",
     "categories": [
-        "Other"
+      "Other"
     ],
     "keywords": [
-        "salesforce",
-        "metadata",
-        "counter",
-        "sfdx"
+      "salesforce",
+      "metadata",
+      "counter",
+      "sfdx"
     ],
     "activationEvents": [
-        "workspaceContains:sfdx-project.json",
-        "workspaceContains:force-app"
+      "workspaceContains:sfdx-project.json",
+      "workspaceContains:force-app"
     ],
     "main": "./out/extension.js",
     "contributes": {
-        "commands": [
-            {
-                "command": "salesforce-metadata-counter.countMetadata",
-                "title": "Count Salesforce Metadata Components"
-            },
-            {
-                "command": "salesforce-metadata-counter.generateReport",
-                "title": "Generate Salesforce Metadata Report"
-            }
-        ],
-        "configuration": {
-            "title": "Salesforce Metadata Counter",
-            "properties": {
-                "salesforceMetadataCounter.showInStatusBar": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show metadata count in the status bar"
-                },
-                "salesforceMetadataCounter.autoRefreshCount": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Automatically refresh count when files change"
-                }
-            }
+      "views": {
+        "explorer": [
+          {
+            "id": "salesforce-metadata-counter.metadataView",
+            "name": "Salesforce Metadata"
+          }
+        ]
+      },
+      "commands": [
+        {
+          "command": "salesforce-metadata-counter.countMetadata",
+          "title": "Count Salesforce Metadata Components",
+          "icon": "$(database)"
+        },
+        {
+          "command": "salesforce-metadata-counter.generateReport",
+          "title": "Generate Salesforce Metadata Report",
+          "icon": "$(output)"
+        },
+        {
+          "command": "salesforce-metadata-counter.refreshMetadataView",
+          "title": "Refresh Metadata View",
+          "icon": "$(refresh)"
         }
+      ],
+      "menus": {
+        "view/title": [
+          {
+            "command": "salesforce-metadata-counter.refreshMetadataView",
+            "when": "view == salesforce-metadata-counter.metadataView",
+            "group": "navigation"
+          }
+        ]
+      },
+      "configuration": {
+        "title": "Salesforce Metadata Counter",
+        "properties": {
+          "salesforceMetadataCounter.showInStatusBar": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show metadata count in the status bar"
+          },
+          "salesforceMetadataCounter.autoRefreshCount": {
+            "type": "boolean",
+            "default": true,
+            "description": "Automatically refresh count when files change"
+          }
+        }
+      }
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "pretest": "npm run compile && npm run lint",
-        "lint": "eslint src --ext ts",
-        "test": "node ./out/test/runTest.js"
+      "vscode:prepublish": "npm run compile",
+      "compile": "tsc -p ./",
+      "watch": "tsc -watch -p ./",
+      "pretest": "npm run compile && npm run lint",
+      "lint": "eslint src --ext ts",
+      "test": "node ./out/test/runTest.js"
     },
     "devDependencies": {
         "@eslint/js": "^9.22.0",
-        "@types/glob": "^7.1.4",
-        "@types/mocha": "^9.0.0",
-        "@types/node": "14.x",
-        "@types/vscode": "^1.60.0",
+      "@types/glob": "^7.1.4",
+      "@types/mocha": "^9.0.0",
+      "@types/node": "14.x",
+      "@types/vscode": "^1.60.0",
         "@typescript-eslint/eslint-plugin": "^8.26.0",
         "@typescript-eslint/parser": "^8.26.0",
         "@vscode/test-electron": "^1.6.2",
@@ -73,15 +97,15 @@
         "typescript-eslint": "^8.26.0"
     },
     "dependencies": {
-        "fast-glob": "^3.2.11"
+      "fast-glob": "^3.2.11"
     },
     "repository": {
-        "type": "git",
-        "url": "https://github.com/your-username/salesforce-metadata-counter.git"
+      "type": "git",
+      "url": "https://github.com/your-username/salesforce-metadata-counter.git"
     },
     "homepage": "https://github.com/your-username/salesforce-metadata-counter",
     "bugs": {
-        "url": "https://github.com/your-username/salesforce-metadata-counter/issues"
+      "url": "https://github.com/your-username/salesforce-metadata-counter/issues"
     },
     "license": "MIT"
-}
+  }
