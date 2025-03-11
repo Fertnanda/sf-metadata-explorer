@@ -2,6 +2,10 @@
 
 VS Code extension for Salesforce developers that scans local project metadata in force-app and dataPack folders, visualizing component distribution in an interactive dashboard. Quickly analyze metadata types, counts, and structure to better understand your project's composition.
 
+![Screenshot 2025-03-11 at 9 08 41 AM](https://github.com/user-attachments/assets/39793373-18d4-4ef9-a8e2-78a9d6e75378)
+
+
+
 ## Features (not implemented yet)
 
 - Automatically detect Salesforce projects (SFDX or traditional)
