@@ -10,7 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Check if the current workspace is a Salesforce project
     const isSfProject = isSalesforceProject();
     if (!isSfProject) { 
-        console.log('Not a Sa;esforce project, extension features disabled');
+        console.log('Not a Salesforce project, extension features disabled');
         return;
     }
 
@@ -22,26 +22,26 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(statusBarItem);
 
     // Register commands
-    const countMetadataCommand = vscode.command.registerCommand('salesforce-metadata-counter.countMetadata', async () => {
+    const countMetadataCommand = vscode.commands.registerCommand('salesforce-metadata-counter.countMetadata', async () => {
         statusBarItem.text = '$(sync~spin) Counting...'
         statusBarItem.show();
 
         try {
             const count = await countMetadata();
-            statusBarItem.text = '$(database) SF Components: ${count}';
-            vscode.window.showInformationMessage('Found ${count} Salesforce metadata components');
+            statusBarItem.text = `$(database) SF Components: ${count}`;
+            vscode.window.showInformationMessage(`Found ${count} Salesforce metadata components`);
         } catch (error) {
             statusBarItem.text = '$(error) Count failed';
             vscode.window.showInformationMessage('Failed to count metadata: ${error}');
         }
     });
 
-    const generateReportCommand = vscode.command.registerCommand('salesforce-metadata-counter.generateReport', async () => {
+    const generateReportCommand = vscode.commands.registerCommand('salesforce-metadata-counter.generateReport', async () => {
         try {
             const report = await generateMetadataReport();
 
             //Create and show output with the report 
-            const channel = vscode.window.createOutputChannel('Salesforce Metadata Reoort');
+            const channel = vscode.window.createOutputChannel('Salesforce Metadata Report');
             channel.clear()
             channel.appendLine('# Salesforce Metadata Component Report');
             channel.appendLine('');
@@ -64,21 +64,30 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(countMetadataCommand, generateReportCommand);
 
     // Show the status bas item if the configuration option is enabled
-    const showInStatusBar = vscode.workspace.getConfiguration('salesforceMetadataCounter')
-    if (autoRefreshCount) {
-        const watcher = vscode.workspace.createFileSystemWatcher('**/force-app/**/*.{xml,cls,trigger,js,html');
+    const showInStatusBar = vscode.workspace.getConfiguration('salesforceMetadataCounter').get('showInStatusBar', true);
+    if (showInStatusBar) {
+      statusBarItem.show();
+      // Initial count
+      vscode.commands.executeCommand('salesforce-metadata-counter.countMetadata');
+    }
 
-        count refreshCount = () => {
+    // Set up file change watcher to update the count when files change
+    const autoRefreshCount = vscode.workspace.getConfiguration('salesforceMetadataCounter').get('autoRefreshCount', true);
+    if (autoRefreshCount) {
+      const watcher = vscode.workspace.createFileSystemWatcher('**/force-app/**/*.{xml,cls,trigger,js,html}');
+   
+
+        const refreshCount = () => {
             // Debounce the counting to avoid escessive operations
             if (refreshTimeout) { 
                 clearTimeout(refreshTimeout);
             }
             refreshTimeout =  setTimeout(() => {
-                vscode.command.executeCommand('salesforce-metadata-counter.countMetadata');
+                vscode.commands.executeCommand('salesforce-metadata-counter.countMetadata');
             }, 2000);
         };
         
-        let refreshTimeout: NodeJs.Timeout | null = null;
+        let refreshTimeout: NodeJS.Timeout | null = null;
 
         // Watch for file change, creation, deletion
         watcher.onDidChange(refreshCount);
