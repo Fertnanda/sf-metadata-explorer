@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as glob from 'fast-glob';
+import fastGlob from 'fast-glob';
 import { getSalesforceSourceDirectory } from './projectDetector';
 import { isXmlFile, isCodeFile, getMetadataTypeFromPath } from './utils/fileUtils';
 
@@ -20,14 +20,14 @@ export async function countMetadata(): Promise<number> {
   }
 
   // Get all XML files in the project
-  const xmlFiles = await glob('**/*.xml', {
+  const xmlFiles = await fastGlob('**/*.xml', {
     cwd: sourceDir,
     absolute: true,
     ignore: ['**/package.xml'] // Exclude package.xml
   });
 
   // Get all code files that need special handling
-  const codeFiles = await glob('**/*.{cls,trigger}', {
+  const codeFiles = await fastGlob('**/*.{cls,trigger}', {
     cwd: sourceDir,
     absolute: true
   });
@@ -47,7 +47,7 @@ export async function countMetadata(): Promise<number> {
       const baseName = filePath.slice(0, -9); // Remove '-meta.xml'
       
       // Check if this is a metadata file for a code component
-      if (codeFiles.some(codeFile => codeFile.replace(/\\/g, '/') === baseName)) {
+      if (codeFiles.some((codeFile: string) => codeFile.replace(/\\/g, '/') === baseName)) {
         pairedFileTracker.add(baseName);
         continue; // Skip counting this file as it will be counted with its paired file
       }
@@ -95,14 +95,14 @@ export async function generateMetadataReport(): Promise<MetadataReport> {
   const report: MetadataReport = {};
 
   // Get all XML files
-  const xmlFiles = await glob('**/*.xml', {
+  const xmlFiles = await fastGlob('**/*.xml', {
     cwd: sourceDir,
     absolute: true,
     ignore: ['**/package.xml']
   });
 
   // Get all code files
-  const codeFiles = await glob('**/*.{cls,trigger}', {
+  const codeFiles = await fastGlob('**/*.{cls,trigger}', {
     cwd: sourceDir,
     absolute: true
   });
@@ -119,7 +119,7 @@ export async function generateMetadataReport(): Promise<MetadataReport> {
     if (filePath.endsWith('-meta.xml')) {
       const baseName = filePath.slice(0, -9);
       
-      if (codeFiles.some(codeFile => codeFile.replace(/\\/g, '/') === baseName)) {
+      if (codeFiles.some((codeFile: string) => codeFile.replace(/\\/g, '/') === baseName)) {
         pairedFileTracker.add(baseName);
         continue;
       }
