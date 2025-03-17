@@ -10,7 +10,7 @@ export function isXmlFile(filePath: string): boolean {
 }
 
 /**
- * Checks if a file is a code file (class, trigger)
+ * Checks if a file is a code file (class, trigger, lwc)
  * @param filePath The path to the file
  * @returns boolean indicating if the file is a code file
  */

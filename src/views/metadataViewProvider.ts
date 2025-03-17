@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { generateMetadataReport } from '../metadataCounter';
+import { countMetadata } from '../metadataCounter';
 import { isSalesforceProject } from '../projectDetector';
 
 export class MetadataViewProvider implements vscode.WebviewViewProvider {
@@ -17,11 +17,21 @@ export class MetadataViewProvider implements vscode.WebviewViewProvider {
   public async refresh(): Promise<void> {
     if (this._view && !this._isRefreshing) {
       this._isRefreshing = true;
+      this._view.webview.html = this._getLoadingHtml();
+      
       try {
-        this._metadataReport = await generateMetadataReport();
+        if (!isSalesforceProject()) {
+          this._view.webview.html = this._getNotSalesforceProjectHtml();
+          return;
+        }
+        
+        // Use the countMetadata function which returns an object with totalCount and metadataByType
+        const result = await countMetadata();
+        this._metadataReport = result.metadataByType;
         this._view.webview.html = this._getHtmlForWebview();
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to refresh metadata view: ${error}`);
+        console.error('Error refreshing metadata view:', error);
+        this._view.webview.html = this._getErrorHtml(String(error));
       } finally {
         this._isRefreshing = false;
       }
@@ -50,11 +60,12 @@ export class MetadataViewProvider implements vscode.WebviewViewProvider {
     });
 
     // Initial load of metadata counts
-    if (isSalesforceProject()) {
-      this.refresh();
-    } else {
-      webviewView.webview.html = this._getNotSalesforceProjectHtml();
-    }
+    this.refresh().catch(err => {
+      console.error('Error during initial view load:', err);
+      if (this._view) {
+        this._view.webview.html = this._getErrorHtml(String(err));
+      }
+    });
   }
 
   private _getHtmlForWebview(): string {
@@ -240,6 +251,70 @@ export class MetadataViewProvider implements vscode.WebviewViewProvider {
         <h3>Not a Salesforce Project</h3>
         <p>Please open a Salesforce project to view metadata counts.</p>
       </div>
+    </body>
+    </html>`;
+  }
+
+  private _getErrorHtml(errorMessage: string): string {
+    return `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Salesforce Metadata Count</title>
+      <style>
+        body {
+          font-family: var(--vscode-font-family);
+          padding: 20px;
+          color: var(--vscode-foreground);
+        }
+        .error {
+          color: var(--vscode-errorForeground);
+          background-color: var(--vscode-inputValidation-errorBackground);
+          border: 1px solid var(--vscode-inputValidation-errorBorder);
+          padding: 10px;
+          margin-bottom: 15px;
+          border-radius: 4px;
+        }
+        .error-details {
+          font-family: monospace;
+          white-space: pre-wrap;
+          margin-top: 10px;
+          font-size: 12px;
+          background-color: var(--vscode-editor-background);
+          padding: 8px;
+          border-radius: 2px;
+        }
+        .refresh-button {
+          padding: 6px 12px;
+          margin-top: 15px;
+          background-color: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          border: none;
+          border-radius: 2px;
+          cursor: pointer;
+        }
+        .refresh-button:hover {
+          background-color: var(--vscode-button-hoverBackground);
+        }
+      </style>
+    </head>
+    <body>
+      <h3>Error Loading Metadata View</h3>
+      <div class="error">
+        <p>An error occurred while loading the metadata information:</p>
+        <div class="error-details">${errorMessage}</div>
+      </div>
+      <button class="refresh-button" id="refresh-button">Try Again</button>
+      
+      <script>
+        const vscode = acquireVsCodeApi();
+        document.getElementById('refresh-button').addEventListener('click', () => {
+          vscode.postMessage({
+            command: 'refresh'
+          });
+        });
+      </script>
     </body>
     </html>`;
   }

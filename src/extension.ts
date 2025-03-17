@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { isSalesforceProject } from './projectDetector';
-import { countMetadata, generateMetadataReport } from './metadataCounter';
+import { countMetadata } from './metadataCounter';
 import { MetadataViewProvider } from './views/metadataViewProvider';
 
 let statusBarItem: vscode.StatusBarItem;
@@ -9,31 +9,7 @@ let metadataViewProvider: MetadataViewProvider;
 export function activate(context: vscode.ExtensionContext) {
   console.log('Salesforce Metadata Counter is now active');
 
-  // Check if the current workspace is a Salesforce project
-  const isSfProject = isSalesforceProject();
-  if (!isSfProject) {
-    console.log('Not a Salesforce project, extension features disabled');
-    
-    // Still register the view provider so we can show "Not a Salesforce Project" message
-    metadataViewProvider = new MetadataViewProvider(context);
-    context.subscriptions.push(
-      vscode.window.registerWebviewViewProvider(
-        MetadataViewProvider.viewType,
-        metadataViewProvider
-      )
-    );
-    
-    return;
-  }
-
-  // Create status bar item
-  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.text = '$(sync) Counting SF metadata...';
-  statusBarItem.tooltip = 'Click to count Salesforce metadata components';
-  statusBarItem.command = 'salesforce-metadata-counter.countMetadata';
-  context.subscriptions.push(statusBarItem);
-
-  // Register the sidebar view provider
+  // Always register the view provider
   metadataViewProvider = new MetadataViewProvider(context);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -42,15 +18,29 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // Check if the current workspace is a Salesforce project
+  const isSfProject = isSalesforceProject();
+  if (!isSfProject) {
+    console.log('Not a Salesforce project, extension features disabled');
+    return;
+  }
+  
+  // Create status bar item
+  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  statusBarItem.text = '$(sync) Counting SF metadata...';
+  statusBarItem.tooltip = 'Click to count Salesforce metadata components';
+  statusBarItem.command = 'salesforce-metadata-counter.countMetadata';
+  context.subscriptions.push(statusBarItem);
+
   // Register commands
   const countMetadataCommand = vscode.commands.registerCommand('salesforce-metadata-counter.countMetadata', async () => {
     statusBarItem.text = '$(sync~spin) Counting...';
     statusBarItem.show();
     
     try {
-      const count = await countMetadata();
-      statusBarItem.text = `$(database) SF Components: ${count}`;
-      vscode.window.showInformationMessage(`Found ${count} Salesforce metadata components`);
+      const result = await countMetadata();
+      statusBarItem.text = `$(database) SF Components: ${result.totalCount}`;
+      vscode.window.showInformationMessage(`Found ${result.totalCount} Salesforce metadata components`);
       
       // Refresh the metadata view when counting is complete
       await metadataViewProvider.refresh();
@@ -62,7 +52,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   const generateReportCommand = vscode.commands.registerCommand('salesforce-metadata-counter.generateReport', async () => {
     try {
-      const report = await generateMetadataReport();
+      const result = await countMetadata();
+      const report = result.metadataByType;
       
       // Create and show output channel with the report
       const channel = vscode.window.createOutputChannel('Salesforce Metadata Report');
