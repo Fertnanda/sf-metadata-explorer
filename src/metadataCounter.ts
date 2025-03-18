@@ -1,6 +1,6 @@
 import fastGlob from 'fast-glob';
 import { getSalesforceSourceDirectory } from './projectDetector';
-import { getMetadataTypeFromXmlFile } from './utils/fileUtils2';
+import { getMetadataTypeFromXmlFile } from './utils/fileUtils';
 
 // Interface dict number by metadata type 
 export interface MetadataReport {
